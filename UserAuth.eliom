@@ -14,20 +14,7 @@ module UserAuth_app =
     let application_name = "UserAuth"
   end)
 
-let main_service =
-  Eliom_service.App.service ~path:[] ~get_params:Eliom_parameter.unit ()
-
 let () =
-  UserAuth_app.register
-    ~service:main_service
-    (fun () () ->
-       Lwt.return
-         (Eliom_tools.F.html
-            ~title:"UserAuth"
-            ~css:[["css";"UserAuth.css"]]
-            Html5.F.(body [
-              h2 [pcdata "Welcome from Eliom's distillery!"];
-            ])));
   UserAuth_app.register
     ~service:index_user_service
     index_user_controller;

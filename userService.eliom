@@ -4,12 +4,12 @@ open Html5.D
 open BatResult
 
 let index_user_service =
-  Eliom_service.Http.service ~path:["users"; ""]
+  Eliom_service.Http.service ~path:[""]
     ~get_params:Eliom_parameter.unit ()
 
 
 let new_user_service =
-  Eliom_service.Http.service ~path:["users"; "new"]
+  Eliom_service.Http.service ~path:["new"]
     ~get_params:Eliom_parameter.unit ()
 
 let create_user_service =
