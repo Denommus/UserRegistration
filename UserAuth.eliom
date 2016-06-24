@@ -29,6 +29,9 @@ let () =
               h2 [pcdata "Welcome from Eliom's distillery!"];
             ])));
   UserAuth_app.register
+    ~service:index_user_service
+    index_user_controller;
+  UserAuth_app.register
     ~service:new_user_service
     new_user_controller;
   UserAuth_app.register
