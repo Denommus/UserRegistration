@@ -7,5 +7,8 @@ PKG eliom.client eliom.server
 PKG js_of_ocaml
 PKG safepass
 PKG lwt
+PKG postgresql
+PKG sha
+PKG core
 
 S .
