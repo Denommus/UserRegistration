@@ -34,8 +34,8 @@ module UserControllerFunctor: functor (UModel: sig
       username: string;
       email: string;
     }
-    val create_user : string * (string * string) -> (unit, string) Result.result
-    val get_users : unit -> (t array, string) Result.result
+    val create_user : string * (string * string) -> (unit, string) BatResult.t
+    val get_users : unit -> (t array, string) BatResult.t
   end) -> sig
 
   val index_user_controller : unit -> unit -> Html5_types.html Eliom_content.Html5.elt Lwt.t

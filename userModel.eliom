@@ -27,12 +27,12 @@ let create_user (username, (email, password)) = if String.length password >= 6
        conn#exec ~params:[|username; email; hashed_pass; salt|]
          "INSERT INTO users (username, email, password, salt) VALUES ($1, $2, $3, $4)") in
     match result#status with
-        | Command_ok -> Result.Ok ()
-        | _ -> Result.Error result#error
-    else Result.Error "Password is too small"
+        | Command_ok -> BatResult.Ok ()
+        | _ -> BatResult.Bad result#error
+    else BatResult.Bad "Password is too small"
 
 let get_users () = let result = withConnection (pgconn ())
                        (fun conn -> conn#exec "SELECT id, username, email FROM users")
   in match result#status with
-  | Tuples_ok -> Result.Ok (tuples_to_users result#get_all)
-  | _ -> Result.Error result#error
+  | Tuples_ok -> BatResult.Ok (tuples_to_users result#get_all)
+  | _ -> BatResult.Bad result#error

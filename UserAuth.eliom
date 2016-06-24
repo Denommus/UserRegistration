@@ -1,8 +1,8 @@
-{shared{
+[%%shared
 open Eliom_lib
 open Eliom_content
 open Html5.D
-}}
+]
 
 module UserController = UserService.UserControllerFunctor(UserModel)
 open UserController

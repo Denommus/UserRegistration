@@ -1,8 +1,9 @@
 open Eliom_lib
 open Eliom_content
 open Html5.D
-open Result
-
+[%%shared
+open BatResult
+]
 
 let index_user_service =
   Eliom_service.Http.service ~path:["users"; ""]
@@ -18,15 +19,17 @@ let create_user_service =
     ~fallback:new_user_service
     ~post_params:Eliom_parameter.(string "username" ** string "email" ** string "password") ()
 
+[%%shared
 module type USER_MODEL = sig
   type t = {
     id: int;
     username: string;
     email: string;
   }
-  val create_user : string * (string * string) -> (unit, string) Result.result
-  val get_users : unit -> (t array, string) Result.result
+  val create_user : string * (string * string) -> (unit, string) BatResult.t
+  val get_users : unit -> (t array, string) BatResult.t
 end
+]
 
 module UserViewFunctor(UModel: USER_MODEL) = struct
   open UModel
@@ -40,36 +43,37 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
       Html5.F.(body [
         h2 [pcdata "Users registered"];
         table ([
-          tr [th [pcdata "id"]; th [pcdata "username"]; th[pcdata "email"]]]
-          @ Array.to_list (Array.map user_record users));
+          tr [th [pcdata "id"]; th [pcdata "username"]; th [pcdata "email"]]
+        ] @ Array.to_list (Array.map user_record users));
         br ();
         a new_user_service [pcdata "New user"] ();
       ])
 
-  let create_user_form () =
-    Eliom_content.Html5.D.Form.
+  let create_user_form users =Eliom_content.Html5.D.Form.
       (post_form ~service:create_user_service
          (fun (username, (email, password)) ->
+            let username = input ~input_type:`Text ~name:username string in
+            let password = input ~input_type:`Password ~name:password string in
             [fieldset
                [label [pcdata "login: "];
-                input ~input_type:`Text ~name:username string;
+                username;
                 br ();
                 label [pcdata "email: "];
                 input ~input_type:`Email ~name:email string;
                 br ();
                 label [pcdata "password: "];
-                input ~input_type:`Password ~name:password string;
+                password;
                 br ();
                 input ~input_type:`Submit ~value:"Sign Up" string;
                ]
             ]) ())
 
 
-  let new_user_view () = Eliom_tools.F.html
+  let new_user_view users = Eliom_tools.F.html
       ~title:"Register user"
       Html5.F.(body [
         h2 [pcdata "Register user"];
-        create_user_form ();
+        create_user_form users;
         a index_user_service [pcdata "Main page"] ();
       ])
 
@@ -78,7 +82,7 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
       Html5.F.(body 
         (match user with
          | Ok _ -> [ h2 [pcdata "User created"] ]
-         | Error err -> [ h2 [pcdata ("Error: " ^ err)];
+         | Bad err -> [ h2 [pcdata ("Error: " ^ err)];
            a new_user_service [pcdata "Back"] () ]))
 
   let default_error_view err = Eliom_tools.F.html
@@ -97,7 +101,7 @@ module UserControllerFunctor(UModel: USER_MODEL) = struct
 
   let index_user_controller = fun () () -> Lwt.return (match get_users () with
     | Ok users -> index_user_view users
-    | Error err -> default_error_view err)
+    | Bad err -> default_error_view err)
 
   let create_user_controller = fun () user -> create_user user
                                               |> create_user_view

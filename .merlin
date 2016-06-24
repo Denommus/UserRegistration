@@ -1,14 +1,14 @@
 B _server
 B _client
 
-PKG eliom.camlp4
-PKG eliom.camlp4.client
+PKG eliom.ppx
+PKG eliom.ppx.client
 PKG eliom.client eliom.server
 PKG js_of_ocaml
 PKG safepass
 PKG lwt
 PKG postgresql
 PKG sha
-PKG core
+PKG batteries
 
 S .
