@@ -1,0 +1,11 @@
+B _server
+B _client
+
+PKG eliom.camlp4
+PKG eliom.camlp4.client
+PKG eliom.client eliom.server
+PKG js_of_ocaml
+PKG safepass
+PKG lwt
+
+S .
