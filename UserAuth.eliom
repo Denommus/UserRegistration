@@ -4,7 +4,9 @@ open Eliom_content
 open Html5.D
 }}
 
-open UserView
+module UserController = UserService.UserControllerFunctor(UserModel)
+open UserController
+open UserService
 
 module UserAuth_app =
   Eliom_registration.App (
@@ -28,7 +30,7 @@ let () =
             ])));
   UserAuth_app.register
     ~service:new_user_service
-    new_user_view;
+    new_user_controller;
   UserAuth_app.register
     ~service:create_user_service
-    create_user_view
+    create_user_controller
