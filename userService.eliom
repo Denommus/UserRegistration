@@ -2,7 +2,7 @@ open Eliom_lib
 open Eliom_content
 open Html5.D
 [%%shared
-open BatResult
+    open BatResult
 ]
 
 let index_user_service =
@@ -20,15 +20,22 @@ let create_user_service =
     ~post_params:Eliom_parameter.(string "username" ** string "email" ** string "password") ()
 
 [%%shared
-module type USER_MODEL = sig
-  type t = {
-    id: int;
-    username: string;
-    email: string;
-  }
-  val create_user : string * (string * string) -> (unit, string) BatResult.t
-  val get_users : unit -> (t array, string) BatResult.t
-end
+    module type USER_MODEL = sig
+      type t = {
+        id: int;
+        username: string;
+        email: string;
+      }
+      val create_user : string * (string * string) -> (unit, string) BatResult.t
+      val get_users : unit -> (t array, string) BatResult.t
+    end
+]
+
+[%%client
+    open Eliom_content.Html5
+    let password_signal, set_password = React.S.create ""
+    let password_len = React.S.map String.length password_signal
+    let username_signal, set_username = React.S.create ""
 ]
 
 module UserViewFunctor(UModel: USER_MODEL) = struct
@@ -49,11 +56,30 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
         a new_user_service [pcdata "New user"] ();
       ])
 
-  let create_user_form users =Eliom_content.Html5.D.Form.
+  let create_user_form users =
+    Eliom_content.Html5.D.Form.
       (post_form ~service:create_user_service
          (fun (username, (email, password)) ->
             let username = input ~input_type:`Text ~name:username string in
             let password = input ~input_type:`Password ~name:password string in
+            let _ = [%client
+               (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
+                 let un = To_dom.of_input ~%username in
+                 keyups un (fun _ _ -> let v = Js.to_string (un##.value) in
+                             set_username v;
+                             Lwt.return ())
+               )) : unit)
+            ] in
+            let _ = [%client
+              
+              (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
+                 let pass = To_dom.of_input ~%password in
+                 keyups pass (fun _ _ -> let v = Js.to_string (pass##.value) in
+                               set_username v;
+                               Lwt.return ())
+               )) : unit)
+            ] in
+
             [fieldset
                [label [pcdata "login: "];
                 username;
@@ -80,10 +106,10 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
   let create_user_view user = Eliom_tools.F.html
       ~title:"Register user"
       Html5.F.(body 
-        (match user with
-         | Ok _ -> [ h2 [pcdata "User created"] ]
-         | Bad err -> [ h2 [pcdata ("Error: " ^ err)];
-           a new_user_service [pcdata "Back"] () ]))
+                 (match user with
+                  | Ok _ -> [ h2 [pcdata "User created"] ]
+                  | Bad err -> [ h2 [pcdata ("Error: " ^ err)];
+                                 a new_user_service [pcdata "Back"] () ]))
 
   let default_error_view err = Eliom_tools.F.html
       ~title:"Error!"
