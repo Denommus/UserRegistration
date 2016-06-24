@@ -1,9 +1,7 @@
 open Eliom_lib
 open Eliom_content
 open Html5.D
-[%%shared
-    open BatResult
-]
+open BatResult
 
 let index_user_service =
   Eliom_service.Http.service ~path:["users"; ""]
@@ -26,16 +24,41 @@ let create_user_service =
         username: string;
         email: string;
       }
-      val create_user : string * (string * string) -> (unit, string) BatResult.t
-      val get_users : unit -> (t array, string) BatResult.t
     end
 ]
 
 [%%client
     open Eliom_content.Html5
+    let exists p arr = let i = ref 0 in
+      let result = ref false in
+      let len = Array.length arr in
+      while !i < len do
+        if Array.get arr !i |> p
+        then begin
+          i := len; result := true
+        end;
+        i := !i+1;
+      done; Firebug.console##log (Js.string (string_of_bool !result)); !result
     let password_signal, set_password = React.S.create ""
     let password_len = React.S.map String.length password_signal
+    let password_valid = React.S.map (fun x -> x>=6) password_len
     let username_signal, set_username = React.S.create ""
+    let users_signal, set_users = React.S.create [||]
+    let username_valid = React.S.l2
+        (fun u us -> not (exists (fun x -> x=u) us))
+        username_signal users_signal
+    let all_valid = React.S.l2 (fun x y -> x && y) password_valid username_valid
+
+    let username_valid_text_sig = React.S.map
+        (fun x -> if x then "" else "Username must be unique") username_valid
+                              |> R.pcdata
+    let password_valid_text_sig = React.S.map
+        (fun x -> if x then "" else "Password length must be >6") password_valid
+                              |> R.pcdata
+
+    let button_style_sig = React.S.map
+        (fun x -> if x then "" else "display: none") all_valid
+                       |> R.a_style
 ]
 
 module UserViewFunctor(UModel: USER_MODEL) = struct
@@ -63,6 +86,9 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
             let username = input ~input_type:`Text ~name:username string in
             let password = input ~input_type:`Password ~name:password string in
             let _ = [%client
+               (set_users ~%users : unit)
+            ] in
+            let _ = [%client
                (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let un = To_dom.of_input ~%username in
                  keyups un (fun _ _ -> let v = Js.to_string (un##.value) in
@@ -75,22 +101,29 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
               (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let pass = To_dom.of_input ~%password in
                  keyups pass (fun _ _ -> let v = Js.to_string (pass##.value) in
-                               set_username v;
+                               set_password v;
                                Lwt.return ())
                )) : unit)
             ] in
+            let username_valid_text () = [%client username_valid_text_sig] in
+            let password_valid_text () = [%client password_valid_text_sig] in
+            let button_style () = [%client button_style_sig] in
+            let open Eliom_content.Html5 in
 
             [fieldset
                [label [pcdata "login: "];
                 username;
+                C.node (username_valid_text ());
                 br ();
                 label [pcdata "email: "];
                 input ~input_type:`Email ~name:email string;
                 br ();
                 label [pcdata "password: "];
                 password;
+                C.node (password_valid_text ());
                 br ();
-                input ~input_type:`Submit ~value:"Sign Up" string;
+                input ~a:[C.attr (button_style ())]
+                  ~input_type:`Submit ~value:"Sign Up" string;
                ]
             ]) ())
 
@@ -120,7 +153,11 @@ end
 
 
 
-module UserControllerFunctor(UModel: USER_MODEL) = struct
+module UserControllerFunctor(UModel: sig
+    include USER_MODEL
+    val create_user : string * (string * string) -> (unit, string) BatResult.t
+    val get_users : unit -> (t array, string) BatResult.t
+  end) = struct
   module UserView = UserViewFunctor(UModel)
   open UModel
   open UserView
@@ -133,5 +170,7 @@ module UserControllerFunctor(UModel: USER_MODEL) = struct
                                               |> create_user_view
                                               |> Lwt.return
 
-  let new_user_controller = fun () () -> Lwt.return (new_user_view ())
+  let new_user_controller = fun () () ->
+    let users = BatResult.default [||] (get_users ()) in
+    Lwt.return (new_user_view (Array.map (fun x -> x.username) users))
 end
