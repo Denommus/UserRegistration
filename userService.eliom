@@ -105,7 +105,7 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
             let _ = [%client
                (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let un = To_dom.of_input ~%username in
-                 keyups un (fun _ _ -> let v = Js.to_string (un##.value) in
+                 inputs un (fun _ _ -> let v = Js.to_string (un##.value) in
                              set_username v;
                              Lwt.return ())
                )) : unit)
@@ -113,7 +113,7 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
             let _ = [%client
               (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let pass = To_dom.of_input ~%password in
-                 keyups pass (fun _ _ -> let v = Js.to_string (pass##.value) in
+                 inputs pass (fun _ _ -> let v = Js.to_string (pass##.value) in
                                set_password v;
                                Lwt.return ())
                )) : unit)
@@ -121,9 +121,9 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
             let _ = [%client
               (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let em = To_dom.of_input ~%email in
-                 keyups em (fun _ _ -> let v = Js.to_string (em##.value) in
-                               set_email v;
-                               Lwt.return ())
+                 inputs em (fun _ _ -> let v = Js.to_string (em##.value) in
+                             set_email v;
+                             Lwt.return ())
                )) : unit)
             ] in
             let username_valid_text () = [%client username_valid_text_sig] in
