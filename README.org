@@ -32,6 +32,8 @@ To start the server
    Migrations need to be implement. Really. Even if migrations are written in SQL. It's too bad to have a database and not have an automated way to load changes that were still not applied. Most popular frameworks for popular languages implement some sort of migration, it's a shame that database support in Ocsigen seems to be so lacking.
 ** Shared reactive signals
    They would probably be the proper way to check for an existing username, but given the timespan I couldn't get to learn them. The local signal for the username value should be compared to a server signal that compares the value in a query, producing a shared boolean signal that informs whether the user exists. This shared signal would then generate the message and disable the button.
+** Reactive programming support
+   I had to repeat some code to take the values from the inputs as signals, because when I encapsulated the code to a function I couldn't compile the project. I need to investigate the exact reasons.
 ** Personal opinion
    Ocsigen has some excelent ideas, but I personally prefer the following Haskell stack to accomplish equivalent things
 *** Servant
