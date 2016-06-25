@@ -29,6 +29,7 @@ let create_user_service =
 
 [%%client
     open Eliom_content.Html5
+    open EmailValidation
     let exists p arr = let i = ref 0 in
       let result = ref false in
       let len = Array.length arr in
@@ -38,16 +39,24 @@ let create_user_service =
           i := len; result := true
         end;
         i := !i+1;
-      done; Firebug.console##log (Js.string (string_of_bool !result)); !result
+      done; !result
     let password_signal, set_password = React.S.create ""
     let password_len = React.S.map String.length password_signal
     let password_valid = React.S.map (fun x -> x>=6) password_len
+
     let username_signal, set_username = React.S.create ""
     let users_signal, set_users = React.S.create [||]
     let username_valid = React.S.l2
         (fun u us -> not (exists (fun x -> x=u) us))
         username_signal users_signal
-    let all_valid = React.S.l2 (fun x y -> x && y) password_valid username_valid
+
+    let email_signal, set_email = React.S.create ""
+    let email_valid = React.S.map email_validation email_signal
+
+    let all_valid = React.S.l3 (fun x y z -> x && y && z)
+        password_valid
+        username_valid
+        email_valid
 
     let username_valid_text_sig = React.S.map
         (fun x -> if x then "" else "Username must be unique") username_valid
@@ -55,6 +64,10 @@ let create_user_service =
     let password_valid_text_sig = React.S.map
         (fun x -> if x then "" else "Password length must be >6") password_valid
                               |> R.pcdata
+
+    let email_valid_text_sig = React.S.map
+        (fun x -> if x then "" else "Email must be a valid email") email_valid
+                               |> R.pcdata
 
     let button_style_sig = React.S.map
         (fun x -> if x then "" else "display: none") all_valid
@@ -82,9 +95,10 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
   let create_user_form users =
     Eliom_content.Html5.D.Form.
       (post_form ~service:create_user_service
-         (fun (username, (email, password)) ->
-            let username = input ~input_type:`Text ~name:username string in
-            let password = input ~input_type:`Password ~name:password string in
+         (fun (u, (e, p)) ->
+            let username = input ~input_type:`Text ~name:u string in
+            let email = input ~input_type:`Email ~name:e string in
+            let password = input ~input_type:`Password ~name:p string in
             let _ = [%client
                (set_users ~%users : unit)
             ] in
@@ -97,7 +111,6 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
                )) : unit)
             ] in
             let _ = [%client
-              
               (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
                  let pass = To_dom.of_input ~%password in
                  keyups pass (fun _ _ -> let v = Js.to_string (pass##.value) in
@@ -105,8 +118,17 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
                                Lwt.return ())
                )) : unit)
             ] in
+            let _ = [%client
+              (Lwt_js_events.(async Eliom_content.Html5.(fun () ->
+                 let em = To_dom.of_input ~%email in
+                 keyups em (fun _ _ -> let v = Js.to_string (em##.value) in
+                               set_email v;
+                               Lwt.return ())
+               )) : unit)
+            ] in
             let username_valid_text () = [%client username_valid_text_sig] in
             let password_valid_text () = [%client password_valid_text_sig] in
+            let email_valid_text () = [%client email_valid_text_sig] in
             let button_style () = [%client button_style_sig] in
             let open Eliom_content.Html5 in
 
@@ -116,7 +138,8 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
                 C.node (username_valid_text ());
                 br ();
                 label [pcdata "email: "];
-                input ~input_type:`Email ~name:email string;
+                email;
+                C.node (email_valid_text ());
                 br ();
                 label [pcdata "password: "];
                 password;
@@ -140,7 +163,8 @@ module UserViewFunctor(UModel: USER_MODEL) = struct
       ~title:"Register user"
       Html5.F.(body 
                  (match user with
-                  | Ok _ -> [ h2 [pcdata "User created"] ]
+                  | Ok _ -> [ h2 [pcdata "User created"];
+                              a index_user_service [pcdata "List"] ()]
                   | Bad err -> [ h2 [pcdata ("Error: " ^ err)];
                                  a new_user_service [pcdata "Back"] () ]))
 
